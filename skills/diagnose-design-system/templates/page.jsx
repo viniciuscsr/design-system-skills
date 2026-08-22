@@ -1,0 +1,57 @@
+// Fill COLORS, ICON_LIBRARIES, and COMPONENTS from design-system-diagnosis.json.
+// Do not add type or heading samples.
+
+const COLORS = [
+  // { label: '#27265D', className: 'bg-[#27265D]' },
+];
+
+const ICON_LIBRARIES = [
+  // { name: 'lucide-react', count: 9 },
+];
+
+const COMPONENTS = [
+  // { name: 'Button', file: 'components/ui/Button.tsx' },
+];
+
+export default function DesignSystemDiagnosisPage() {
+  return (
+    <main className="mx-auto max-w-6xl px-6 py-12">
+      <h1 className="text-2xl font-semibold">Design system diagnosis</h1>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">Colors</h2>
+        <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4 md:grid-cols-6">
+          {COLORS.map((row) => (
+            <div key={row.label} className="min-w-0">
+              <div className={`h-12 rounded-md border ${row.className}`} />
+              <p className="mt-1 truncate text-xs">{row.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">Icon libraries</h2>
+        <ul className="mt-4 list-disc pl-5 text-sm">
+          {ICON_LIBRARIES.map((row) => (
+            <li key={row.name}>
+              {row.name} ({row.count})
+            </li>
+          ))}
+        </ul>
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">Reusable components</h2>
+        <ul className="mt-4 space-y-1 text-sm">
+          {COMPONENTS.map((row) => (
+            <li key={row.file}>
+              <span className="font-medium">{row.name}</span>{' '}
+              <span className="font-mono text-xs">{row.file}</span>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </main>
+  );
+}
