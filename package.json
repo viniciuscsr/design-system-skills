@@ -1,0 +1,25 @@
+{
+  "name": "@viniciuscsr/design-system-skills",
+  "version": "1.0.0",
+  "description": "Install design-system skills for Cursor and Claude Code",
+  "type": "module",
+  "bin": {
+    "design-system-skills": "./scripts/install.mjs"
+  },
+  "files": [
+    "scripts/install.mjs",
+    "skills/diagnose-design-system"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/viniciuscsr/design-system-skills.git"
+  },
+  "homepage": "https://github.com/viniciuscsr/design-system-skills",
+  "license": "MIT",
+  "keywords": [
+    "design-system",
+    "cursor",
+    "claude",
+    "skill"
+  ]
+}
