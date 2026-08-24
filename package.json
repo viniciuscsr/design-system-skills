@@ -1,14 +1,14 @@
 {
-  "name": "@viniciuscsr/design-system-skills",
-  "version": "1.0.0",
-  "description": "Install design-system skills for Cursor and Claude Code",
+  "name": "@vinnycsr/design-system-skills",
+  "version": "1.1.0",
+  "description": "Design system tooling for Cursor and Claude Code: diagnose an existing project, or create a design system from one brand color",
   "type": "module",
   "bin": {
-    "design-system-skills": "./scripts/install.mjs"
+    "design-system-skills": "scripts/install.mjs"
   },
   "files": [
     "scripts/install.mjs",
-    "skills/diagnose-design-system"
+    "skills"
   ],
   "repository": {
     "type": "git",
@@ -16,6 +16,9 @@
   },
   "homepage": "https://github.com/viniciuscsr/design-system-skills",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "keywords": [
     "design-system",
     "cursor",

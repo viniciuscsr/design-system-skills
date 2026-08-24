@@ -1,10 +1,4 @@
----
-name: diagnose-design-system
-description: Scans a frontend repo and reports colors, icon libraries, and reusable components. Use when the user asks to diagnose, audit, or review their design system.
-disable-model-invocation: true
----
-
-# Diagnose design system
+# `/design-system-skill diagnose`
 
 Read-only scan, then a simple report page. Do not restyle the host app. Do not invent tokens. Do not add type or heading samples.
 
@@ -16,7 +10,7 @@ From the **host repo root**:
 node <skill-root>/scripts/diagnose.mjs
 ```
 
-`<skill-root>` is this folder (the one that contains `SKILL.md`).
+`<skill-root>` is the folder containing `SKILL.md` — one level up from this file.
 
 Read stdout and `design-system-diagnosis.json`.
 
@@ -32,7 +26,7 @@ Next App Router files look like `app/internal/design-system-diagnosis/page.jsx`.
 
 ## 3. Write or update the page
 
-Copy [templates/page.jsx](templates/page.jsx). Fill only:
+Copy [../templates/page.jsx](../templates/page.jsx). Fill only:
 
 - **Colors** from `colors`
 - **Icon libraries** from `iconLibraries`
@@ -46,8 +40,8 @@ Do not add fonts, type scales, or heading samples.
 
 Give the local URL, for example `http://localhost:3000/internal/design-system-diagnosis`.
 
-They can say “update the design system diagnosis” to re-run.
+Re-running `/design-system-skill diagnose` updates the page in place.
 
 ## Report shape
 
-See [examples/diagnosis.example.json](examples/diagnosis.example.json).
+See [../examples/diagnosis.example.json](../examples/diagnosis.example.json).

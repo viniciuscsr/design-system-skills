@@ -4,7 +4,13 @@ import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const SKILL_NAME = 'diagnose-design-system';
+const SKILL_NAME = 'design-system-skill';
+
+// Superseded folder names, removed on install. Before v1.1.0 each command shipped
+// as its own skill; leaving the old folder behind gives the user two competing
+// slash commands.
+const RETIRED_SKILL_NAMES = ['diagnose-design-system'];
+
 const packageRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const skillSource = path.join(packageRoot, 'skills', SKILL_NAME);
 
@@ -40,7 +46,16 @@ if (!targets.length) {
 }
 
 for (const dest of targets) {
-  fs.mkdirSync(path.dirname(dest), { recursive: true });
+  const skillsDir = path.dirname(dest);
+  fs.mkdirSync(skillsDir, { recursive: true });
+
+  for (const retired of RETIRED_SKILL_NAMES) {
+    const stale = path.join(skillsDir, retired);
+    if (!fs.existsSync(stale)) continue;
+    fs.rmSync(stale, { recursive: true, force: true });
+    console.log(`Removed superseded ${retired} from ${skillsDir}`);
+  }
+
   fs.rmSync(dest, { recursive: true, force: true });
   fs.cpSync(skillSource, dest, { recursive: true });
   console.log(`Installed ${SKILL_NAME} to ${dest}`);

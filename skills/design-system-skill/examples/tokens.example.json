@@ -1,0 +1,47 @@
+{
+  "note": "Reference output for `create`. The script writes real files, not this JSON — this is here so you can see what one brand color expands into.",
+  "input": { "color": "#27265D", "mode": "light" },
+  "tokens": {
+    "bg": "#ffffff",
+    "surface": "#f6f6f9",
+    "surfaceWarm": "#e8e8f3",
+    "textRgb": "27 27 45",
+    "fg": "rgb(27 27 45 / 0.95)",
+    "fg2": "rgb(27 27 45 / 0.75)",
+    "muted": "rgb(27 27 45 / 0.5)",
+    "meta": "rgb(27 27 45 / 0.35)",
+    "border": "#d6d6eb",
+    "borderSoft": "#e9e9f2",
+    "primary": "#27265d",
+    "primaryOn": "#ffffff",
+    "primaryHover": "#33327a",
+    "primaryActive": "#3c3b90",
+    "primaryRamp": {
+      "50": "#EEEEF2",
+      "100": "#D4D4DF",
+      "200": "#A9A8BE",
+      "300": "#7D7D9E",
+      "400": "#52517D",
+      "500": "#27265D",
+      "600": "#201F4C",
+      "700": "#19183C",
+      "800": "#12112B",
+      "900": "#0B0B1A"
+    },
+    "success": "#1a432f",
+    "danger": "#dc2626"
+  },
+  "writes": [
+    "components/ui/{Button,Badge,Card,Dialog,Tabs,Tooltip,Checkbox,Input,Select,Switch}.tsx",
+    "components/ui/*.md",
+    "design-system/tokens.md",
+    "design-system/README.md",
+    "app/internal/design-system/page.jsx",
+    "app/internal/design-system/specimens.jsx"
+  ],
+  "fragmentsToMerge": [
+    "design-system/_generated/tailwind-brand.js",
+    "design-system/_generated/globals-root.css",
+    "design-system/_generated/AGENTS-snippet.md"
+  ]
+}
