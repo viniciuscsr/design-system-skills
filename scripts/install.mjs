@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -32,18 +31,17 @@ if (!fs.existsSync(path.join(skillSource, 'SKILL.md'))) {
 }
 
 const host = path.resolve(args.cwd || process.cwd());
-const base = args.global ? os.homedir() : host;
 const selected = TOOLS.filter((tool) => args[tool.key] !== false);
 
 if (!selected.length) {
   console.error(
-    'Nothing to install. Use the default, or one of --claude-only, --cursor-only, --codex-only, --global.',
+    'Nothing to install. Use the default, or one of --claude-only, --cursor-only, --codex-only.',
   );
   process.exit(1);
 }
 
 for (const tool of selected) {
-  const skillsDir = path.join(base, tool.dir, 'skills');
+  const skillsDir = path.join(host, tool.dir, 'skills');
   const dest = path.join(skillsDir, SKILL_NAME);
 
   fs.mkdirSync(skillsDir, { recursive: true });
@@ -59,7 +57,7 @@ for (const tool of selected) {
   fs.cpSync(skillSource, dest, { recursive: true });
   console.log(`Installed ${SKILL_NAME} to ${dest}`);
 
-  if (tool.key === 'codex') linkFromAgentsFile(base, dest);
+  if (tool.key === 'codex') linkFromAgentsFile(host, dest);
 }
 
 // Codex discovers instructions through AGENTS.md, not a skills folder, so point
@@ -107,8 +105,6 @@ function parseArgs(argv) {
       out.cwd = argv[++i];
       continue;
     }
-    if (key === '--global') out.global = true;
-
     // `--x-only` turns off every other tool.
     const only = /^--(claude|cursor|codex)-only$/.exec(key);
     if (only) {
