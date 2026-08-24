@@ -2,6 +2,16 @@ import { notFound } from 'next/navigation';
 import { DocumentTextIcon } from '@heroicons/react/24/outline';
 import Specimens from './specimens';
 
+// Never reachable in a deployed build, and never indexed if it somehow is.
+// VERCEL_ENV covers Vercel previews vs production; NODE_ENV covers everywhere else.
+const IS_PRODUCTION =
+  process.env.VERCEL_ENV === 'production' || process.env.NODE_ENV === 'production';
+
+export const metadata = {
+  title: 'Design system',
+  robots: { index: false, follow: false, nocache: true },
+};
+
 const RAMP = [50, 100, 200, 300, 400, 500, 600, 700, 800, 900];
 
 // Full class strings, not `bg-brand-primary-${step}` — Tailwind scans source
@@ -79,7 +89,7 @@ function Swatch({ label, className }) {
 }
 
 export default function DesignSystemSpecimenPage() {
-  if (process.env.VERCEL_ENV === 'production') notFound();
+  if (IS_PRODUCTION) notFound();
 
   return (
     <main className='min-h-screen bg-brand-bg text-brand-fg'>
@@ -97,7 +107,7 @@ export default function DesignSystemSpecimenPage() {
           <code className='text-sm text-brand-fg'>app/globals.css</code>. Usage lives
           in{' '}
           <code className='text-sm text-brand-fg'>design-system/tokens.md</code>. This
-          page 404s on Vercel production.
+          page 404s in production and is excluded from the sitemap.
         </p>
         <nav className='mt-6 flex flex-wrap gap-4 text-sm text-brand-fg2'>
           <a href='#color' className='hover:text-brand-primary'>

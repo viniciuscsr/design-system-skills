@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const skillRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -542,20 +543,180 @@ function appDir(root) {
   return fs.existsSync(path.join(root, 'src')) ? 'src/app' : 'app';
 }
 
-function componentsDir(root) {
-  return fs.existsSync(path.join(root, 'src')) && !fs.existsSync(path.join(root, 'components'))
-    ? 'src/components/ui'
-    : 'components/ui';
+// Always the root `components/ui`, even in a src/ project. If the folder exists
+// the files are added to it — write() only ever creates what's missing.
+const UI_DIR = 'components/ui';
+
+// ------------------------------------------------------- project inspection
+
+function readPackageJson(root) {
+  const file = path.join(root, 'package.json');
+  if (!fs.existsSync(file)) return null;
+  try {
+    return JSON.parse(fs.readFileSync(file, 'utf8'));
+  } catch {
+    return null;
+  }
 }
+
+function allDeps(pkg) {
+  return { ...(pkg?.dependencies || {}), ...(pkg?.devDependencies || {}) };
+}
+
+// Refuse to write into a project this system can't work in. Tokens are Tailwind
+// classes and the components are React, so both are hard requirements.
+function validateProject(root) {
+  const pkg = readPackageJson(root);
+  if (!pkg) {
+    fail(
+      `No readable package.json in ${root}.\n` +
+        'This command needs a React project. Run it from the project root, or pass --cwd.',
+    );
+  }
+
+  const deps = allDeps(pkg);
+  if (!deps.react) {
+    fail(
+      `${pkg.name || 'This project'} does not depend on react.\n` +
+        'The design system ships React components, so it can only be installed into a React project (Next.js recommended).',
+    );
+  }
+
+  const hasTailwind =
+    deps.tailwindcss ||
+    deps['@tailwindcss/postcss'] ||
+    fs.existsSync(path.join(root, 'tailwind.config.js')) ||
+    fs.existsSync(path.join(root, 'tailwind.config.ts'));
+  if (!hasTailwind) {
+    fail(
+      `${pkg.name || 'This project'} does not appear to use Tailwind CSS.\n` +
+        'Every token in this system is a Tailwind class. Install Tailwind first, then re-run.',
+    );
+  }
+
+  return { pkg, deps };
+}
+
+const PACKAGE_MANAGERS = [
+  ['pnpm-lock.yaml', 'pnpm', ['add']],
+  ['yarn.lock', 'yarn', ['add']],
+  ['bun.lockb', 'bun', ['add']],
+  ['package-lock.json', 'npm', ['install']],
+];
+
+function detectPackageManager(root) {
+  for (const [lockfile, bin, verb] of PACKAGE_MANAGERS) {
+    if (fs.existsSync(path.join(root, lockfile))) return { bin, verb };
+  }
+  return { bin: 'npm', verb: ['install'] };
+}
+
+const REQUIRED_DEPS = ['@base-ui/react', '@heroicons/react'];
+
+function missingDeps(deps) {
+  return REQUIRED_DEPS.filter((name) => !deps[name]);
+}
+
+function installDeps(root, missing) {
+  const { bin, verb } = detectPackageManager(root);
+  const argv = [...verb, ...missing];
+  process.stdout.write(`Installing ${missing.join(' and ')} with ${bin}...\n`);
+  const res = spawnSync(bin, argv, { cwd: root, stdio: 'inherit' });
+  if (res.error || res.status !== 0) {
+    return { ok: false, command: `${bin} ${argv.join(' ')}` };
+  }
+  return { ok: true, command: `${bin} ${argv.join(' ')}` };
+}
+
+// ------------------------------------------------------- stylesheet
+
+const CSS_CANDIDATES = [
+  'app/globals.css',
+  'src/app/globals.css',
+  'styles/globals.css',
+  'src/styles/globals.css',
+  'app/global.css',
+  'src/index.css',
+  'src/App.css',
+];
+
+// The @config path is relative to the stylesheet, not the project root, and
+// getting it wrong is the most common way a v4 install breaks. Compute it here
+// so nobody has to count directories.
+function findStylesheet(root) {
+  const found = CSS_CANDIDATES.find((rel) => fs.existsSync(path.join(root, rel)));
+  if (found) return found;
+
+  // Fall back to any stylesheet that pulls Tailwind in.
+  const skip = new Set(['node_modules', '.next', '.git', 'dist', 'build', 'out', 'coverage']);
+  const stack = [root];
+  while (stack.length) {
+    const dir = stack.pop();
+    let entries;
+    try {
+      entries = fs.readdirSync(dir, { withFileTypes: true });
+    } catch {
+      continue;
+    }
+    for (const entry of entries) {
+      const full = path.join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (!skip.has(entry.name) && !entry.name.startsWith('.')) stack.push(full);
+        continue;
+      }
+      if (!entry.name.endsWith('.css')) continue;
+      const text = fs.readFileSync(full, 'utf8');
+      if (/@import\s+["']tailwindcss["']|@tailwind\s+base/.test(text)) {
+        return path.relative(root, full).split(path.sep).join('/');
+      }
+    }
+  }
+  return null;
+}
+
+function configDirective(root, stylesheetRel) {
+  if (!stylesheetRel) return null;
+  const from = path.dirname(path.join(root, stylesheetRel));
+  const to = path.join(root, 'tailwind.config.js');
+  const rel = path.relative(from, to).split(path.sep).join('/');
+  return `@config "${rel.startsWith('.') ? rel : `./${rel}`}";`;
+}
+
+function isTailwindV4(root, deps) {
+  if (deps['@tailwindcss/postcss']) return true;
+  const version = deps.tailwindcss;
+  return typeof version === 'string' && /^[\^~]?4/.test(version);
+}
+
+// ------------------------------------------------------- sitemap
+
+const SITEMAP_FILES = [
+  ['next-sitemap.config.js', "add '/internal/*' to the `exclude` array"],
+  ['next-sitemap.config.mjs', "add '/internal/*' to the `exclude` array"],
+  ['app/sitemap.ts', "filter out any route starting with '/internal'"],
+  ['app/sitemap.js', "filter out any route starting with '/internal'"],
+  ['src/app/sitemap.ts', "filter out any route starting with '/internal'"],
+  ['src/app/sitemap.js', "filter out any route starting with '/internal'"],
+];
+
+// The page already 404s in production and sets robots noindex. This only matters
+// when the project generates a sitemap that would otherwise list the route.
+function sitemapTarget(root) {
+  for (const [rel, instruction] of SITEMAP_FILES) {
+    if (fs.existsSync(path.join(root, rel))) return { file: rel, instruction };
+  }
+  return null;
+}
+
+// ------------------------------------------------------- run
 
 function run(root, hex, mode, force) {
   const tokens = generateTokens(hex, mode);
-  const ui = componentsDir(root);
   const app = appDir(root);
 
   for (const name of COMPONENTS) {
-    write(root, `${ui}/${name}.tsx`, read(assets, 'components', `${name}.tsx`), force);
-    write(root, `${ui}/${name}.md`, read(assets, 'docs', `${name}.md`), force);
+    write(root, `${UI_DIR}/${name}.tsx`, read(assets, 'components', `${name}.tsx`), force);
+    write(root, `${UI_DIR}/${name}.md`, read(assets, 'docs', `${name}.md`), force);
   }
 
   write(root, 'design-system/tokens.md', tokensMarkdown(tokens), force);
@@ -618,7 +779,29 @@ if (mode !== 'light' && mode !== 'dark') fail(`--mode must be "light" or "dark",
 const root = path.resolve(args.cwd === true || !args.cwd ? process.cwd() : args.cwd);
 if (!fs.existsSync(root)) fail(`No such directory: ${root}`);
 
+// Stop before writing anything if this isn't a project the system can work in.
+const { deps } = validateProject(root);
+
+// Dependencies. --skip-install just reports what's missing instead of installing.
+const missing = missingDeps(deps);
+let installNote = null;
+if (missing.length) {
+  const { bin, verb } = detectPackageManager(root);
+  const command = `${bin} ${verb.join(' ')} ${missing.join(' ')}`;
+  if (args['skip-install']) {
+    installNote = `missing ${missing.join(' and ')} — install with: ${command}`;
+  } else {
+    const res = installDeps(root, missing);
+    installNote = res.ok
+      ? `installed ${missing.join(' and ')} (${res.command})`
+      : `could not install ${missing.join(' and ')}. Run it yourself: ${res.command}`;
+  }
+}
+
 const { tokens, app } = run(root, args.color, mode, Boolean(args.force));
+
+const stylesheet = findStylesheet(root);
+const directive = configDirective(root, stylesheet);
 
 const lines = [
   `Generated a ${mode} design system from ${tokens.primary}`,
@@ -635,12 +818,30 @@ if (result.skipped.length) {
   );
 }
 
-lines.push(
-  '',
-  'merge these by hand:',
-  ...result.merge.map((f) => `  ! ${f}`),
-  '',
-  `preview page: /internal/design-system  (${app}/internal/design-system/page.jsx)`,
-);
+lines.push('', 'merge these by hand:', ...result.merge.map((f) => `  ! ${f}`));
+
+lines.push('', `stylesheet: ${stylesheet || '(not found — locate it yourself)'}`);
+
+if (isTailwindV4(root, deps) && directive) {
+  lines.push(
+    '',
+    'Tailwind v4 detected. The config is loaded by a directive in that stylesheet.',
+    'Use exactly this line — the path is relative to the stylesheet, not the project root:',
+    '',
+    `  @import "tailwindcss";`,
+    `  ${directive}`,
+  );
+}
+
+const sitemap = sitemapTarget(root);
+if (sitemap) {
+  lines.push('', `sitemap: ${sitemap.file} — ${sitemap.instruction}`);
+} else {
+  lines.push('', 'sitemap: none found, nothing to exclude');
+}
+
+if (installNote) lines.push('', `dependencies: ${installNote}`);
+
+lines.push('', `preview page: /internal/design-system  (${app}/internal/design-system/page.jsx)`);
 
 process.stdout.write(`${lines.join('\n')}\n`);
