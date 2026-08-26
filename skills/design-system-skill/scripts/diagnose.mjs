@@ -157,22 +157,28 @@ const args = parseArgs(process.argv.slice(2));
 const root = path.resolve(args.cwd || process.cwd());
 const outPath = path.resolve(root, args.out || 'design-system-diagnosis.json');
 
-const report = scan(root);
+const report = scan(root, Boolean(args['by-file']));
 writeJson(outPath, report);
 printReport(report, outPath);
 
-function scan(dirRoot) {
+function scan(dirRoot, byFile) {
   const files = collectFiles(dirRoot);
   const colorCounts = new Map();
   const iconCounts = new Map();
   const importTargets = new Map();
   const componentFiles = [];
+  const perFile = [];
 
   for (const file of files) {
     const text = readText(file);
     if (!text) continue;
     const rel = relPath(dirRoot, file);
-    extractColors(text, colorCounts);
+    const localColors = new Map();
+    extractColors(text, localColors);
+    merge(colorCounts, localColors);
+    if (byFile && localColors.size && !isDesignSystemFile(rel)) {
+      perFile.push({ file: rel, colors: rank(localColors) });
+    }
     extractIcons(text, iconCounts);
     extractImports(text, file, dirRoot, importTargets);
     if (isReusableComponent(rel, text)) {
@@ -189,7 +195,15 @@ function scan(dirRoot) {
     colors: rank(colorCounts).slice(0, 40),
     iconLibraries: rank(iconCounts),
     components: rankComponents(componentFiles, importTargets).slice(0, 20),
+    ...(byFile
+      ? { files: perFile.sort((a, b) => a.file.localeCompare(b.file)) }
+      : {}),
   };
+}
+
+// The design system's own files are the source of the tokens, not a target.
+function isDesignSystemFile(rel) {
+  return rel.includes('design-system');
 }
 
 function extractColors(text, counts) {
@@ -317,6 +331,14 @@ function bump(counts, row) {
   else prev.count += 1;
 }
 
+function merge(target, source) {
+  for (const [key, row] of source) {
+    const prev = target.get(key);
+    if (!prev) target.set(key, { ...row });
+    else prev.count += row.count;
+  }
+}
+
 function rank(counts) {
   return [...counts.values()].sort((a, b) => b.count - a.count);
 }
@@ -381,5 +403,6 @@ function printReport(data, file) {
     `icon libraries: ${data.iconLibraries.map((row) => row.name).join(', ') || '(none)'}`,
     `components: ${data.components.length}`,
   ];
+  if (data.files) lines.push(`files with colors: ${data.files.length}`);
   process.stdout.write(`${lines.join('\n')}\n`);
 }

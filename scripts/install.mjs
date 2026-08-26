@@ -61,7 +61,7 @@ for (const tool of selected) {
 }
 
 // Codex discovers instructions through AGENTS.md, not a skills folder, so point
-// it at the two command files. Rewrites its own section rather than duplicating.
+// it at the three command files. Rewrites its own section rather than duplicating.
 function linkFromAgentsFile(dir, dest) {
   const file = path.join(dir, 'AGENTS.md');
   const rel = path.relative(dir, dest).split(path.sep).join('/');
@@ -75,6 +75,9 @@ function linkFromAgentsFile(dir, dest) {
     `  Read \`${rel}/commands/diagnose.md\` and follow it.`,
     `- \`design-system-skill create\` — generate a design system from one brand color.`,
     `  Read \`${rel}/SKILL.md\` for the questions to ask, then \`${rel}/commands/create.md\`.`,
+    `- \`design-system-skill apply\` — replace the app's hardcoded colors and raw elements`,
+    '  with the design system.',
+    `  Read \`${rel}/SKILL.md\` for the questions to ask, then \`${rel}/commands/apply.md\`.`,
     '',
     '',
   ].join('\n');
