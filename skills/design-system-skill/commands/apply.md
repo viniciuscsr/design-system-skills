@@ -1,126 +1,62 @@
 # `/design-system-skill apply`
 
-Replace hardcoded colors and raw elements in the host app with the design system's
-tokens and components.
+Use the design system in the app, so the pages actually look like it.
 
-You should already have **scope** and **depth** from the user — see the input section
-in [../SKILL.md](../SKILL.md). If you don't, go get them first. Never guess either one.
-The one question that comes later is *"Which page?"*, in step 3, because it needs the
-scan to fill its options.
+You should already have the two answers from the user — see the input section in
+[../SKILL.md](../SKILL.md). If you don't, go get them first.
 
 `<skill-root>` is the folder containing `SKILL.md` — one level up from this file.
 
-## 1. Check the design system exists
+## 1. Read the design system first
 
 ```bash
-test -f design-system/tokens.md && ls design-system/components
+cat design-system/tokens.md && ls components/ui src/components/ui 2>/dev/null
 ```
 
-If either fails, stop and say:
+If `design-system/tokens.md` isn't there, stop and say:
 
-> No design system found in this project. Run `/design-system-skill create` first.
+> There's no design system in this project yet. Run `/design-system-skill create` first.
 
-Do not invent tokens, and do not fall back to colors you find in the app.
+Read `tokens.md` and the `.md` file next to each component. This is the whole point of
+the command: you use the real color names and the real prop values instead of guessing
+them. Only use names that appear in those files.
 
-## 2. Read the vocabulary
+## 2. Make the changes
 
-Read `design-system/tokens.md` and list `design-system/components`. These two are the
-**only** things you are allowed to replace with. Anything not in them stays untouched.
+If they chose one page, change that page and the pieces it uses. If they chose the
+whole site, work through the pages one file at a time.
 
-For component props, read the matching file in `design-system/docs/`. Do not guess a
-`variant` or `size` value — use the ones the doc names.
+In each file:
 
-## 3. Scan
+- Replace hardcoded colors — `#27265D`, `bg-[#27265D]`, `dark:bg-[#27265D]`,
+  `from-[#27265D]`, `rgb(...)` — with the matching color name from `tokens.md`.
+- If they also chose buttons and inputs: replace plain `<button>`, `<input>`,
+  `<select>` and card-like `<div>`s with the matching component, and import it from
+  `@/components/ui/<Name>`.
 
-```bash
-node <skill-root>/scripts/diagnose.mjs --by-file
-```
+Leave the text, the layout, and how the page works exactly as they are. If a color has
+no good match in the design system, leave it and mention it at the end.
 
-This writes `design-system-diagnosis.json` with a `files` array: every file that has a
-color in it, and which colors. The design system's own files are already excluded.
+## 3. Check it works and tell them
 
-If the scope is **one page**, ask the `Page` follow-up now — **AskUserQuestion**,
-question *"Which page?"*, options being the four files with the most colors from the
-scan. Then keep only that page's file and the files it imports. Everything else in the
-list is out of scope — do not touch it.
+Run the project's build or typecheck if it has one (`npm run build`, `npm run
+typecheck`, `tsc --noEmit` — whichever is in `package.json`). If it fails, fix what you
+broke. Don't start fixing unrelated things.
 
-## 4. Write the plan, then confirm
+Then tell the user, in plain words:
 
-Before editing anything, write `design-system/_generated/apply-plan.md`:
-
-```markdown
-| Found | In | Count | Becomes |
-| --- | --- | --- | --- |
-| `#27265D` | `app/page.jsx` | 12 | `text-brand-primary` |
-| `bg-[#4BC4BE]` | `app/page.jsx` | 3 | `bg-brand-primary` |
-| `<button className="...">` | `app/nav.jsx` | 3 | `<Button variant="primary">` |
-| `#8A8A8A` | `app/nav.jsx` | 2 | **unmapped** |
-```
-
-Rules for the table:
-
-- One row per value per file. Match by what the token *is*, not by what looks close —
-  if a hex isn't in `tokens.md`, mark it **unmapped**. Never round a color to the
-  nearest token.
-- Component rows only if the depth is **colors and components**. If it's
-  **colors only**, the table has color rows and nothing else.
-- A raw element only becomes a component when the props line up. A `<button>` with an
-  `onClick` and a label maps cleanly; one with custom children, a `ref`, or handlers
-  the component doesn't take is **unmapped**.
-
-Show the table to the user, say how many files it touches and how many rows are
-unmapped, and ask:
-
-> Apply these changes?
-
-Wait for a yes. If they say no, stop — the plan file stays for them to read.
-
-## 5. Edit, one file at a time
-
-Work down the table file by file. Per file:
-
-- Change **only** `className`, `style`, and imports. If the depth is
-  **colors and components**, also swap the element tag and add its import.
-- Never change logic, state, props on existing components, JSX structure, or text.
-- Never touch a value that isn't a row in the table.
-- Apply every row for that file, then move to the next file. Do not batch across files.
-
-If a row turns out not to apply once you see the code, leave the code as it is and move
-the row to unmapped. Do not improvise a different replacement.
-
-## 6. Verify
-
-```bash
-node <skill-root>/scripts/diagnose.mjs --by-file
-```
-
-Compare against the first scan. Hardcoded hex and `bg-[#...]` counts should drop by the
-number of rows you applied. If a count didn't move, that file didn't get edited — say so
-rather than glossing over it.
-
-Then run the project's build or typecheck if it has one (`npm run build`, `npm run
-typecheck`, `tsc --noEmit` — whichever the `package.json` scripts list). If it fails,
-report the error. Do not start fixing unrelated things.
-
-## 7. Report
-
-- Files changed, and how many replacements in each
-- Colors before → after, from the two scans
-- The unmapped list, with why each one was skipped
-
-Leave `design-system/_generated/apply-plan.md` in place — it's the record of what
-happened. Delete `design-system-diagnosis.json` if it wasn't there before.
+- Which files you changed
+- Anything you left alone, and why
+- The page to open and look at, e.g. `http://localhost:3000`
 
 ## Will / will not
 
-**Will:** swap hardcoded colors for tokens, and — when asked — raw elements for design
-system components, inside the scope the user picked.
+**Will:** use the colors and components from the design system across the pages they
+picked, and check the project still builds.
 
 **Will not:**
 
-- Run without a design system already in the project.
-- Map a color that isn't an exact token. Close is unmapped.
-- Change layout, spacing, logic, copy, or anything outside `className`, `style`, and
-  imports.
-- Touch files outside the chosen scope.
-- Edit anything before the user confirms the plan.
+- Run when there's no design system yet.
+- Change text, layout, or how anything works.
+- Use a color or a prop value that isn't in the design system's own files.
+- Touch pages outside what they picked.

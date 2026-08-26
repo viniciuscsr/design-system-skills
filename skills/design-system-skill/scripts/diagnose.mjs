@@ -215,12 +215,14 @@ function extractColors(text, counts) {
     bump(counts, { raw: raw.replace(/\s+/g, ' ').trim(), kind: 'rgb' });
   }
 
+  // Variants (dark:, hover:, md:) and gradient stops carry most of a real site's
+  // color, so keep the prefix and report the class exactly as it is written.
   const twRe =
-    /(?<![-.\w/])(bg|text|border)-((?:\[[^\]]+\]|[a-zA-Z][\w]*(?:-[\w./]+)*))/g;
+    /(?<![-.\w/])((?:[a-zA-Z][\w-]*:)*)(bg|text|border|ring|fill|stroke|from|via|to|outline|divide|shadow|accent|caret|decoration|placeholder)-((?:\[[^\]]+\]|[a-zA-Z][\w]*(?:-[\w./]+)*))/g;
   let match;
   while ((match = twRe.exec(text))) {
-    if (!isColorClass(match[1], match[2])) continue;
-    bump(counts, { raw: `${match[1]}-${match[2]}`, kind: 'tailwind' });
+    if (!isColorClass(match[2], match[3])) continue;
+    bump(counts, { raw: `${match[1]}${match[2]}-${match[3]}`, kind: 'tailwind' });
   }
 
   const varRe = /(?:--([a-zA-Z][\w-]*)\s*:|var\((--[a-zA-Z][\w-]*))/g;

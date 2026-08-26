@@ -27,7 +27,7 @@ npx @vinnycsr/design-system-skills --cursor-only
 | --- | --- |
 | `/design-system-skill diagnose` | Reports the colors, icons, and components already in the project. |
 | `/design-system-skill create` | Builds a design system from one brand color. |
-| `/design-system-skill apply` | Replaces the app's hardcoded colors and raw elements with the design system. |
+| `/design-system-skill apply` | Uses the design system's colors and components across the app's pages. |
 
 Slash commands only — nothing runs from ordinary chat.
 

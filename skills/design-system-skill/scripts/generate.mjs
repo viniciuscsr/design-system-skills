@@ -543,9 +543,11 @@ function appDir(root) {
   return fs.existsSync(path.join(root, 'src')) ? 'src/app' : 'app';
 }
 
-// Always the root `components/ui`, even in a src/ project. If the folder exists
-// the files are added to it — write() only ever creates what's missing.
-const UI_DIR = 'components/ui';
+// `@/` resolves to src/ in a src-layout project and to the root otherwise, and the
+// components are imported through that alias — so follow whichever layout is in use.
+function uiDir(root) {
+  return appDir(root) === 'src/app' ? 'src/components/ui' : 'components/ui';
+}
 
 // ------------------------------------------------------- project inspection
 
@@ -714,9 +716,11 @@ function run(root, hex, mode, force) {
   const tokens = generateTokens(hex, mode);
   const app = appDir(root);
 
+  const ui = uiDir(root);
+
   for (const name of COMPONENTS) {
-    write(root, `${UI_DIR}/${name}.tsx`, read(assets, 'components', `${name}.tsx`), force);
-    write(root, `${UI_DIR}/${name}.md`, read(assets, 'docs', `${name}.md`), force);
+    write(root, `${ui}/${name}.tsx`, read(assets, 'components', `${name}.tsx`), force);
+    write(root, `${ui}/${name}.md`, read(assets, 'docs', `${name}.md`), force);
   }
 
   write(root, 'design-system/tokens.md', tokensMarkdown(tokens), force);

@@ -15,8 +15,7 @@ The script installs missing dependencies (`@base-ui/react`, `@heroicons/react`) 
 whichever package manager the lockfile points to. That touches `node_modules` and the
 lockfile, so say so first:
 
-> This will add `@base-ui/react` and `@heroicons/react` if they're missing, and write
-> about 25 files. Go ahead?
+> This adds two packages and creates your design system files. Go ahead?
 
 If they'd rather install by hand, add `--skip-install` and the script will print the
 exact command instead.
