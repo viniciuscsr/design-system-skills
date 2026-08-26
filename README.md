@@ -35,7 +35,12 @@ Slash commands only — nothing runs from ordinary chat.
 
 Scans the repo and writes a page listing what's there. Changes nothing else.
 
+![The diagnosis page: every color found in the project with its usage count, the icon libraries in use, and the reusable components already in the codebase.](docs/diagnose.png)
+
 ## Create
+
+![The generated preview page: the primary 50-900 scale, the primary aliases, surface and border tokens, and text samples.](docs/create.png)
+
 
 Asks for a brand color and a theme, then writes:
 
@@ -62,3 +67,6 @@ node .claude/skills/design-system-skill/scripts/generate.mjs \
 | `--cwd` | Project root. Defaults to the current directory. |
 | `--force` | Overwrite existing files. |
 | `--skip-install` | Print the dependency command instead of running it. |
+## Apply
+
+Uses the design system across your actual pages, so they look like it.
